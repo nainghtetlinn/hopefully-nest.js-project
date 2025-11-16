@@ -8,6 +8,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/db/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +20,7 @@ import * as bcrypt from 'bcrypt';
 export class AuthService {
   constructor(
     private prisma: PrismaService,
+    private jwtService: JwtService,
     private usersService: UsersService,
   ) {}
 
@@ -27,10 +29,15 @@ export class AuthService {
     if (user) throw new BadRequestException('User already exists');
     registerDto.password = await this.hashPassword(registerDto.password);
 
-    return await this.prisma.user.create({
+    const newUser = await this.prisma.user.create({
       data: registerDto,
       omit: { password: true },
     });
+    const payload = { sub: newUser.id, email: newUser.email };
+    return {
+      ...newUser,
+      accessToken: await this.jwtService.signAsync(payload),
+    };
   }
 
   async login(loginDto: LoginDto) {
@@ -41,7 +48,16 @@ export class AuthService {
     if (!match) throw new UnauthorizedException('Invalid credentials');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...result } = user;
-    return result;
+    const payload = { sub: result.id, email: result.email };
+    return {
+      ...result,
+      accessToken: await this.jwtService.signAsync(payload),
+    };
+  }
+
+  async getMe(email: string) {
+    const user = await this.usersService.findOneByEmailAndOmitPassword(email);
+    return user;
   }
 
   private async hashPassword(password: string): Promise<string> {

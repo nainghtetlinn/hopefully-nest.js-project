@@ -10,4 +10,11 @@ export class UsersService {
       where: { email },
     });
   }
+
+  async findOneByEmailAndOmitPassword(email: string) {
+    return await this.prisma.user.findUnique({
+      where: { email },
+      omit: { password: true },
+    });
+  }
 }

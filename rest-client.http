@@ -19,3 +19,6 @@ Content-Type: application/json
     "password": "user123"
 }
 
+###
+GET http://localhost:3000/auth/me HTTP/1.1
+Authorization: Bearer token
