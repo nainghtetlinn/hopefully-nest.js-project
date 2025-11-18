@@ -7,6 +7,7 @@ import { PrismaModule } from './db/prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 
 import { logger } from './middlewares/logger.middleware';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { logger } from './middlewares/logger.middleware';
     PrismaModule,
     AuthModule,
     UsersModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
