@@ -1,8 +1,17 @@
-import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
 
-export const loginSchema = z.object({
-  email: z.email(),
-  password: z.string().min(6, 'Password must be at least 6 characters long'),
-});
+export class LoginDto {
+  @ApiProperty({
+    default: 'test1@email.com',
+  })
+  @IsEmail()
+  email: string;
 
-export type LoginDto = z.infer<typeof loginSchema>;
+  @ApiProperty({
+    default: 'user123',
+  })
+  @IsNotEmpty()
+  @MinLength(6)
+  password: string;
+}
