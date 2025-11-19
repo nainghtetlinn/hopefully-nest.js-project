@@ -4,8 +4,8 @@ import type { Request } from 'express';
 
 import { Public } from 'src/decorators/public.decorator';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dtos/login.dto';
+import { RegisterDto } from './dtos/register.dto';
 
 @ApiTags('auth')
 @Controller('auth')
