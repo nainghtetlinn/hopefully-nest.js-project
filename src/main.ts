@@ -14,7 +14,36 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  SwaggerModule.setup('api', app, documentFactory, {
+    customCss: `
+    /* Make the container a grid */
+    .opblock-body {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+    }
+
+    /* Request section (left) */
+    .opblock-section {
+      order: 2;
+    }
+
+    /* Execute button wrapper — keep it under request */
+    .execute-wrapper, .btn-group {
+      order: 1;
+      grid-column: span 2;
+    }
+
+    .loading-container {
+      display: none !important
+    }
+
+    /* Responses section (right side) */
+    .responses-wrapper {
+      order: 2;
+    }
+  `,
+  });
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
