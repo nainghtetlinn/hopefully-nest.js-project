@@ -4,18 +4,25 @@ import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { AuthConfig } from 'src/config';
+import { AuthService } from '../auth.service';
 import { JwtVerifiedResult } from '../entities/jwt.entity';
 import { LoggedInUser } from '../entities/logged-in-user.entity';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(authConfig: AuthConfig) {
+export class JwtRefreshStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-refresh',
+) {
+  constructor(
+    authConfig: AuthConfig,
+    private authService: AuthService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        (req: Request) => req.cookies?.Authentication,
+        (req: Request) => req.cookies?.Refresh,
       ]),
-      secretOrKey: authConfig.accessSecret,
+      secretOrKey: authConfig.refreshSecret,
       ignoreExpiration: false,
     });
   }
