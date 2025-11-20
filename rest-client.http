@@ -25,3 +25,6 @@ GET http://localhost:3000/auth/refresh HTTP/1.1
 ###
 GET http://localhost:3000/auth/me HTTP/1.1
 Authorization: Bearer token
+
+###
+GET http://localhost:3000/users/2 HTTP/1.1
