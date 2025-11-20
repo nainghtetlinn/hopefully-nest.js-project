@@ -5,55 +5,111 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+
+import { AuthConfig } from 'src/config';
 import { PrismaService } from 'src/db/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/register.dto';
-
-import * as bcrypt from 'bcrypt';
+import { JwtPayload } from './entities/jwt.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private authConfig: AuthConfig,
     private prisma: PrismaService,
     private jwtService: JwtService,
     private usersService: UsersService,
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const user = await this.usersService.findOneByEmail(registerDto.email);
+    const user = await this.usersService.findByEmail(registerDto.email);
     if (user) throw new BadRequestException('User already exists');
     registerDto.password = await this.hashPassword(registerDto.password);
 
     const newUser = await this.prisma.user.create({
       data: registerDto,
-      omit: { password: true },
+      omit: { password: true, refreshToken: true },
     });
-    const payload = { sub: newUser.id, email: newUser.email };
-    return {
-      ...newUser,
-      accessToken: await this.jwtService.signAsync(payload),
-    };
+
+    return newUser;
   }
 
-  async login(loginDto: LoginDto) {
-    const user = await this.usersService.findOneByEmail(loginDto.email);
+  async validateUser(loginDto: LoginDto) {
+    const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) throw new NotFoundException('User not found');
 
     const match = await this.comparePassword(loginDto.password, user.password);
     if (!match) throw new UnauthorizedException('Invalid credentials');
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...result } = user;
-    const payload = { sub: result.id, email: result.email };
-    return {
-      ...result,
-      accessToken: await this.jwtService.signAsync(payload),
-    };
+    const { password, refreshToken, ...result } = user;
+    return result;
+  }
+
+  async veryifyRefreshToken(token: string, userId: number) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const match = await this.comparePassword(token, user.refreshToken || '');
+    if (!match) throw new UnauthorizedException('Invalid refresh token');
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, refreshToken, ...result } = user;
+    return result;
+  }
+
+  async refreshToken() {
+    const user = await this.usersService.findById(1);
+    if (!user) throw new NotFoundException('User not found');
   }
 
   async getMe(email: string) {
-    const user = await this.usersService.findOneByEmailAndOmitPassword(email);
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      omit: { password: true, refreshToken: true },
+    });
     return user;
+  }
+
+  /**
+   *
+   * Utils
+   *
+   */
+  async generateTokens(payload: JwtPayload) {
+    const expiresAccessToken = new Date();
+    expiresAccessToken.setTime(
+      expiresAccessToken.getTime() + this.authConfig.accessExpiresIn,
+    );
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: this.authConfig.accessSecret,
+      expiresIn: this.authConfig.accessExpiresIn,
+    });
+
+    const expiresRefreshToken = new Date();
+    expiresRefreshToken.setTime(
+      expiresRefreshToken.getTime() + this.authConfig.refreshExpiresIn,
+    );
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: this.authConfig.refreshSecret,
+      expiresIn: this.authConfig.refreshExpiresIn,
+    });
+    await this.prisma.user.update({
+      where: {
+        id: payload.userId,
+      },
+      data: {
+        refreshToken: await this.hashPassword(refreshToken),
+      },
+    });
+    return {
+      accessToken,
+      expiresAccessToken,
+      refreshToken,
+      expiresRefreshToken,
+    };
   }
 
   private async hashPassword(password: string): Promise<string> {

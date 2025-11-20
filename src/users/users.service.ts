@@ -5,16 +5,15 @@ import { PrismaService } from 'src/db/prisma/prisma.service';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findOneByEmail(email: string) {
+  async findById(id: number) {
     return await this.prisma.user.findUnique({
-      where: { email },
+      where: { id },
     });
   }
 
-  async findOneByEmailAndOmitPassword(email: string) {
+  async findByEmail(email: string) {
     return await this.prisma.user.findUnique({
       where: { email },
-      omit: { password: true },
     });
   }
 }
