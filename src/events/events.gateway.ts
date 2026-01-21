@@ -11,13 +11,14 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 
+import { JwtVerifiedResult } from 'src/auth/entities/jwt.entity';
 import { WebsocketFilter } from 'src/filters/websocket.filter';
 import { ZodValidationWsPipe } from 'src/pipes/zod-validation-ws.pipe';
 import { type MessageDto, messageSchema } from './dtos/message.dto';
 import { type IOServer, type IOSocket } from './events';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 
-@WebSocketGateway()
+@WebSocketGateway({ cookie: true })
 @UseFilters(WebsocketFilter)
 @UseGuards(WsJwtGuard)
 export class EventsGateway
@@ -30,18 +31,16 @@ export class EventsGateway
 
   afterInit(io: IOServer) {
     io.use((socket: IOSocket, next) => {
+      console.log(socket.handshake.headers);
       const [type, token] =
         socket.handshake.headers.authorization?.split(' ') ?? [];
       const bearerToken = type === 'Bearer' ? token : undefined;
       if (!bearerToken) {
         return next(new Error('Empty Token!'));
       }
-
       try {
-        const payload = this.jwtService.verify<{ sub: number; email: string }>(
-          bearerToken,
-        );
-        socket.data.user = { userId: payload.sub, email: payload.email };
+        const payload = this.jwtService.verify<JwtVerifiedResult>(bearerToken);
+        socket.data.user = { userId: payload.userId, email: payload.email };
         next();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {

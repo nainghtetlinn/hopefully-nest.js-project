@@ -8,10 +8,7 @@ import { EventsGateway } from './events.gateway';
   imports: [
     JwtModule.registerAsync({
       useFactory: (authConfig: AuthConfig) => ({
-        secret: authConfig.secret,
-        signOptions: {
-          expiresIn: authConfig.expiresIn as unknown as undefined,
-        },
+        secret: authConfig.accessSecret,
       }),
       inject: [AuthConfig],
     }),

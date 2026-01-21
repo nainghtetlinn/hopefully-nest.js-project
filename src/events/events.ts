@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { MessageDto } from './dtos/message.dto';
 import { Message } from './entities/message.entity';
+import { LoggedInUser } from 'src/auth/entities/logged-in-user.entity';
 
 interface ServerToClientEvents {
   newMessage: (payload: Message) => void;
@@ -11,10 +12,7 @@ interface ClientToServerEvents {
 }
 
 interface IOData {
-  user: {
-    userId: number;
-    email: string;
-  };
+  user: LoggedInUser;
 }
 
 export type IOServer = Server<
